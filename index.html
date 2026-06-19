@@ -250,18 +250,6 @@
   .chg.dn { color: var(--red); }
   .chg.fl { color: var(--ink-3); }
 
-  /* ── BQ disclaimer ── */
-  .bq-note {
-    background: var(--gold-lt);
-    border: 1px solid #e8d48a;
-    border-left: 3px solid var(--gold);
-    border-radius: var(--radius);
-    padding: 10px 16px;
-    font-size: 11px;
-    color: #5a4200;
-    margin-bottom: 20px;
-  }
-
   #error-banner { display: none; background: var(--red-lt); border: 1px solid #f5b8b8; border-left: 3px solid var(--red); border-radius: var(--radius); padding: 12px 18px; margin-bottom: 16px; font-size: 13px; color: var(--red); }
   .empty { text-align: center; padding: 56px; color: var(--ink-3); }
   .empty .ei { font-size: 28px; margin-bottom: 10px; opacity: 0.3; }
@@ -323,7 +311,7 @@
   <div class="config-grid">
     <div class="config-field">
       <label>Service Account Key (JSON)</label>
-      <input type="file" id="key-file" accept=".json" style="padding:6px 12px;font-size:12px;">
+      
     </div>
     <div class="config-field">
       <label>Date From</label>
@@ -335,7 +323,7 @@
     </div>
     <button id="run-btn" onclick="loadData()">Run Query</button>
   </div>
-  <p style="font-size:11px;color:var(--ink-3);margin-top:8px;">Internal use only — do not share this URL publicly.</p>
+  
 </div>
 
 <div id="filters">
@@ -366,7 +354,7 @@
 
   <!-- OVERVIEW TAB -->
   <div class="tab-panel active" id="tab-overview">
-    <div class="bq-note">⚠️ Revenue figures reflect raw GA4 tracked events in BigQuery. Expect ~15-17% lower than GA4 UI due to consent mode modelling. Sessions shown are site-wide (not filtered by product).</div>
+
     <div class="kpi-row">
       <div class="kpi-card"><div class="kpi-label">Total Revenue</div><div class="kpi-value" id="k-revenue">—</div><div class="kpi-sub" id="k-revenue-s">Awaiting data</div></div>
       <div class="kpi-card"><div class="kpi-label">Transactions</div><div class="kpi-value" id="k-txns">—</div><div class="kpi-sub" id="k-txns-s">Awaiting data</div></div>
