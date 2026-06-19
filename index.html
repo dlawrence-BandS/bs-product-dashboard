@@ -307,23 +307,30 @@
 </header>
 
 <div id="config-panel">
-  <h2>BigQuery Connection</h2>
-  <div class="config-grid">
-    <div class="config-field">
-      <label>Service Account Key (JSON)</label>
-      
+  <div class="config-row">
+    <div class="quick-dates">
+      <span class="qd-label">Quick select:</span>
+      <button class="qd-btn" onclick="setQuickDate(7)">7D</button>
+      <button class="qd-btn" onclick="setQuickDate(14)">14D</button>
+      <button class="qd-btn" onclick="setQuickDate(28)">28D</button>
+      <button class="qd-btn" onclick="setQuickDate(90)">90D</button>
+      <button class="qd-btn" onclick="setQuickDate(180)">6M</button>
+      <button class="qd-btn active" onclick="setQuickDate(365)">1Y</button>
+      <button class="qd-btn" onclick="setQuickDate('mtd')">MTD</button>
+      <button class="qd-btn" onclick="setQuickDate('ytd')">YTD</button>
     </div>
-    <div class="config-field">
-      <label>Date From</label>
-      <input type="date" id="date-from">
-    </div>
-    <div class="config-field">
-      <label>Date To</label>
-      <input type="date" id="date-to">
+    <div class="date-inputs">
+      <div class="date-field">
+        <label>From</label>
+        <input type="date" id="date-from">
+      </div>
+      <div class="date-field">
+        <label>To</label>
+        <input type="date" id="date-to">
+      </div>
     </div>
     <button id="run-btn" onclick="loadData()">Run Query</button>
   </div>
-  
 </div>
 
 <div id="filters">
@@ -933,33 +940,21 @@ function periodKey(date,period){
 function setQuickDate(preset) {
   const today = new Date();
   let from = new Date(today);
-  let label = '';
 
   document.querySelectorAll('.qd-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById('custom-dates').style.display = 'none';
+  if (event && event.target) event.target.classList.add('active');
 
-  if (preset === 'custom') {
-    document.getElementById('custom-dates').style.display = 'flex';
-    document.getElementById('date-display').textContent = '';
-    return;
-  }
   if (preset === 'mtd') {
     from = new Date(today.getFullYear(), today.getMonth(), 1);
-    label = 'Month to date';
   } else if (preset === 'ytd') {
     from = new Date(today.getFullYear(), 0, 1);
-    label = 'Year to date';
   } else {
     from.setDate(today.getDate() - parseInt(preset));
-    label = `Last ${preset} days`;
   }
 
   const fmt = d => d.toISOString().slice(0,10);
   document.getElementById('date-from').value = fmt(from);
   document.getElementById('date-to').value = fmt(today);
-  document.getElementById('date-display').textContent =
-    fmt(from) + '  →  ' + fmt(today) + '  (' + label + ')';
 }
 
 // Set default — 1 year
@@ -967,8 +962,7 @@ const _today = new Date(), _yearAgo = new Date(_today);
 _yearAgo.setFullYear(_today.getFullYear() - 1);
 document.getElementById('date-to').value = _today.toISOString().slice(0,10);
 document.getElementById('date-from').value = _yearAgo.toISOString().slice(0,10);
-document.getElementById('date-display').textContent =
-  _yearAgo.toISOString().slice(0,10) + '  →  ' + _today.toISOString().slice(0,10) + '  (Last 365 days)';
+
 
 // Update display when custom dates are typed
 // Auto-connect status
