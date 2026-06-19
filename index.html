@@ -308,8 +308,8 @@
 
 <div id="config-panel">
   <div class="config-row">
+    <span class="qd-label">Period:</span>
     <div class="quick-dates">
-      <span class="qd-label">Quick select:</span>
       <button class="qd-btn" onclick="setQuickDate(7)">7D</button>
       <button class="qd-btn" onclick="setQuickDate(14)">14D</button>
       <button class="qd-btn" onclick="setQuickDate(28)">28D</button>
@@ -319,6 +319,7 @@
       <button class="qd-btn" onclick="setQuickDate('mtd')">MTD</button>
       <button class="qd-btn" onclick="setQuickDate('ytd')">YTD</button>
     </div>
+    <div class="date-sep"></div>
     <div class="date-inputs">
       <div class="date-field">
         <label>From</label>
@@ -555,7 +556,7 @@ async function loadData() {
     setStatus('ok',`${rawData.length.toLocaleString()} rows loaded`);
     populateFilters(); applyFilters();
   } catch(e) { setStatus('error','Query failed'); showError(`Error: ${e.message}`); }
-  finally { document.getElementById('run-btn').disabled=false; }
+  finally { document.getElementById('run-btn').disabled=false; document.getElementById('loading-overlay').classList.remove('show'); }
 }
 
 async function pollJob(token, jr) {
