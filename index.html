@@ -286,6 +286,39 @@
   .loading-box p { font-size: 13px; color: var(--ink-2); font-weight: 500; }
   .loading-box small { font-size: 11px; color: var(--ink-3); margin-top: 4px; display: block; }
 
+  /* ── Sub tabs ── */
+  .sub-tabs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 0;
+    flex-wrap: wrap;
+  }
+  .sub-tab {
+    height: 36px; padding: 0 16px;
+    border: none; background: none;
+    font-size: 12px; font-weight: 500;
+    color: var(--ink-3); cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    font-family: var(--sans);
+    transition: color 0.1s;
+    white-space: nowrap;
+  }
+  .sub-tab.active { color: var(--bs-blue); border-bottom-color: var(--bs-blue); font-weight: 700; }
+  .sub-tab:hover:not(.active) { color: var(--ink); }
+  .sub-tab-metric { margin-left: auto; display: flex; align-items: center; gap: 8px; padding-bottom: 4px; }
+  .sub-panel { display: none; }
+  .sub-panel.active { display: block; }
+
+  /* ── Heatmap ── */
+  .heatmap-table { border-collapse: collapse; font-size: 11px; }
+  .heatmap-table th { padding: 6px 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); text-align: left; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+  .heatmap-table td { padding: 5px 8px; text-align: center; font-size: 11px; font-weight: 500; min-width: 60px; white-space: nowrap; border: 1px solid rgba(255,255,255,0.5); }
+  .heatmap-row-label { text-align: left !important; font-weight: 600; color: var(--ink-2); padding-left: 12px !important; }
+
   @media(max-width:900px){
     .config-grid { grid-template-columns: 1fr; }
     .kpi-row { grid-template-columns: 1fr 1fr; }
@@ -397,60 +430,206 @@
 
   <!-- DEMAND TRENDS TAB -->
   <div class="tab-panel" id="tab-demand">
-    <div style="margin-bottom:18px;">
-      <p style="font-size:13px;color:var(--ink-3);">Spot which colours, materials and categories are gaining or losing momentum. Growth is calculated by comparing the most recent half of your selected date range vs the earlier half.</p>
-    </div>
 
-    <div class="charts-grid">
-      <div class="chart-card">
-        <div class="chart-header">
-          <div><div class="chart-title">Colour Momentum</div><div class="chart-sub">Revenue growth: recent vs earlier period</div></div>
-          <div class="ctoggle">
-            <button onclick="setDemandMetric('revenue')" class="active" id="dm-revenue">Revenue</button>
-            <button onclick="setDemandMetric('units')" id="dm-units">Units</button>
-            <button onclick="setDemandMetric('sessions')" id="dm-sessions">Sessions</button>
-          </div>
-        </div>
-        <canvas id="colour-momentum-chart"></canvas>
-      </div>
-      <div class="chart-card">
-        <div class="chart-header"><div><div class="chart-title">Category Momentum</div><div class="chart-sub">Revenue growth: recent vs earlier period</div></div></div>
-        <canvas id="cat-momentum-chart"></canvas>
-      </div>
-    </div>
-
-    <div class="charts-grid" style="margin-bottom:16px;">
-      <div class="chart-card">
-        <div class="chart-header">
-          <div><div class="chart-title">Collection Momentum</div><div class="chart-sub">Which ranges are growing</div></div>
-        </div>
-        <canvas id="collection-momentum-chart"></canvas>
-      </div>
-      <div class="chart-card">
-        <div class="chart-header">
-          <div><div class="chart-title">Seat Config Momentum</div><div class="chart-sub">2-seater vs 3-seater etc.</div></div>
-        </div>
-        <canvas id="seat-momentum-chart"></canvas>
-      </div>
-    </div>
-
-    <div class="chart-card full" style="margin-bottom:18px;">
-      <div class="chart-header">
-        <div><div class="chart-title">Colour Trend Over Time</div><div class="chart-sub">Monthly revenue per colour — top 8</div></div>
+    <!-- Sub-nav tabs -->
+    <div class="sub-tabs">
+      <button class="sub-tab active" onclick="showSubTab('colours')">Colours</button>
+      <button class="sub-tab" onclick="showSubTab('materials')">Materials</button>
+      <button class="sub-tab" onclick="showSubTab('categories')">Categories</button>
+      <button class="sub-tab" onclick="showSubTab('collections')">Collections</button>
+      <button class="sub-tab" onclick="showSubTab('sofas')">Sofa Types</button>
+      <button class="sub-tab" onclick="showSubTab('heatmap')">Heatmap</button>
+      <div class="sub-tab-metric">
+        <span style="font-size:10px;color:var(--ink-3);text-transform:uppercase;letter-spacing:0.06em;">Metric:</span>
         <div class="ctoggle">
-          <button onclick="setColourTrendMetric('revenue')" class="active" id="ct-revenue">Revenue</button>
-          <button onclick="setColourTrendMetric('units')" id="ct-units">Units</button>
+          <button onclick="setDemandMetric('revenue')" class="active" id="dm-revenue">Revenue</button>
+          <button onclick="setDemandMetric('units')" id="dm-units">Units</button>
         </div>
       </div>
-      <canvas id="colour-trend-chart" style="max-height:300px;"></canvas>
     </div>
 
-    <div class="table-card">
-      <div class="table-header"><h3>Colour × Category — Demand Table</h3></div>
-      <div id="demand-table-container">
-        <div class="empty"><div class="ei">📊</div><p>Load data to see demand trends</p></div>
+    <!-- COLOURS sub-tab -->
+    <div class="sub-panel active" id="sub-colours">
+      <div class="charts-grid" style="margin-bottom:16px;">
+        <div class="chart-card full">
+          <div class="chart-header">
+            <div><div class="chart-title">All Colours — Trend Over Time</div><div class="chart-sub" id="colour-trend-sub">Top 10 colours, monthly</div></div>
+            <div class="ctoggle">
+              <button onclick="setColourTrendMetric('revenue')" class="active" id="ct-revenue">Revenue</button>
+              <button onclick="setColourTrendMetric('units')" id="ct-units">Units</button>
+            </div>
+          </div>
+          <canvas id="colour-trend-chart" style="max-height:320px;"></canvas>
+        </div>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div><div class="chart-title">Colour Momentum</div><div class="chart-sub">% change: recent vs earlier half of period</div></div>
+          </div>
+          <canvas id="colour-momentum-chart"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div><div class="chart-title">Colour Share</div><div class="chart-sub">Revenue split across all colours</div></div>
+          </div>
+          <canvas id="colour-share-chart"></canvas>
+        </div>
       </div>
     </div>
+
+    <!-- MATERIALS sub-tab -->
+    <div class="sub-panel" id="sub-materials">
+      <div class="charts-grid" style="margin-bottom:16px;">
+        <div class="chart-card full">
+          <div class="chart-header">
+            <div><div class="chart-title">All Materials — Trend Over Time</div><div class="chart-sub">Monthly performance by material</div></div>
+          </div>
+          <canvas id="material-trend-chart" style="max-height:320px;"></canvas>
+        </div>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div><div class="chart-title">Material Momentum</div><div class="chart-sub">% change: recent vs earlier period</div></div>
+          </div>
+          <canvas id="material-momentum-chart"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div><div class="chart-title">Material Share</div><div class="chart-sub">Revenue split by material</div></div>
+          </div>
+          <canvas id="material-share-chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- CATEGORIES sub-tab -->
+    <div class="sub-panel" id="sub-categories">
+      <div class="charts-grid" style="margin-bottom:16px;">
+        <div class="chart-card full">
+          <div class="chart-header">
+            <div><div class="chart-title">All Categories — Trend Over Time</div><div class="chart-sub">Monthly performance by top-level category</div></div>
+          </div>
+          <canvas id="cat-trend-chart" style="max-height:320px;"></canvas>
+        </div>
+      </div>
+      <div class="charts-grid" style="margin-bottom:16px;">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div><div class="chart-title">Category Momentum</div><div class="chart-sub">% change: recent vs earlier period</div></div>
+          </div>
+          <canvas id="cat-momentum-chart"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div><div class="chart-title">Sub-category Momentum</div><div class="chart-sub">Drill-down within categories</div></div>
+          </div>
+          <canvas id="subcat-momentum-chart"></canvas>
+        </div>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div><div class="chart-title">Top Colour by Category</div><div class="chart-sub">Most popular colour in each top-level category</div></div>
+          </div>
+          <canvas id="colour-by-cat-chart"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div><div class="chart-title">Top Colour by Sub-category</div><div class="chart-sub">Most popular colour per sub-category</div></div>
+          </div>
+          <canvas id="colour-by-subcat-chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- COLLECTIONS sub-tab -->
+    <div class="sub-panel" id="sub-collections">
+      <div class="charts-grid" style="margin-bottom:16px;">
+        <div class="chart-card full">
+          <div class="chart-header">
+            <div><div class="chart-title">Collections — Trend Over Time</div><div class="chart-sub">Top 10 collections monthly</div></div>
+          </div>
+          <canvas id="collection-trend-chart" style="max-height:320px;"></canvas>
+        </div>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div><div class="chart-title">Collection Momentum</div><div class="chart-sub">Which ranges are growing</div></div>
+          </div>
+          <canvas id="collection-momentum-chart"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div><div class="chart-title">Seat Config Trend</div><div class="chart-sub">2-seater vs 3-seater vs corner etc.</div></div>
+          </div>
+          <canvas id="seat-trend-chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- SOFA TYPES sub-tab -->
+    <div class="sub-panel" id="sub-sofas">
+      <div class="charts-grid" style="margin-bottom:16px;">
+        <div class="chart-card full">
+          <div class="chart-header">
+            <div>
+              <div class="chart-title">Sofa Configuration — Trend Over Time</div>
+              <div class="chart-sub">2 Seater, 3 Seater, Corner, Chaise, Sofa Bed etc. — extracted from product names</div>
+            </div>
+            <div class="ctoggle">
+              <button onclick="setSofaMetric('revenue')" class="active" id="sm-revenue">Revenue</button>
+              <button onclick="setSofaMetric('units')" id="sm-units">Units</button>
+            </div>
+          </div>
+          <canvas id="sofa-trend-chart" style="max-height:340px;"></canvas>
+        </div>
+      </div>
+      <div class="charts-grid" style="margin-bottom:16px;">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div><div class="chart-title">Configuration Momentum</div><div class="chart-sub">% growth: recent vs earlier period</div></div>
+          </div>
+          <canvas id="sofa-momentum-chart"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div><div class="chart-title">Configuration Share</div><div class="chart-sub">Revenue split by sofa type</div></div>
+          </div>
+          <canvas id="sofa-share-chart"></canvas>
+        </div>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-card full">
+          <div class="chart-header">
+            <div><div class="chart-title">Top Colour by Sofa Configuration</div><div class="chart-sub">Which colour leads each sofa type</div></div>
+          </div>
+          <canvas id="sofa-colour-chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- HEATMAP sub-tab -->
+    <div class="sub-panel" id="sub-heatmap">
+      <div class="table-card" style="margin-bottom:16px;">
+        <div class="table-header">
+          <h3>Colour × Category Heatmap</h3>
+          <span style="font-size:11px;color:var(--ink-3);">Darker = higher revenue</span>
+        </div>
+        <div id="heatmap-container" style="padding:16px;overflow-x:auto;">
+          <div class="empty"><div class="ei">📊</div><p>Load data to see heatmap</p></div>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-header"><h3>Colour × Category — Full Detail</h3></div>
+        <div id="demand-table-container">
+          <div class="empty"><div class="ei">📊</div><p>Load data to see demand trends</p></div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- PRODUCTS TAB -->
@@ -576,6 +755,48 @@ async function pollJob(token, jr) {
   return rows;
 }
 
+function getSofaConfig(name, category, seatConfig) {
+  if (!name) return null;
+  const n = name.toLowerCase();
+  const cat = (category||'').toLowerCase();
+  const sc = (seatConfig||'').toLowerCase();
+
+  // Only apply to sofa/upholstery categories
+  const isSofa = cat.includes('sofa') || cat.includes('upholstery') ||
+                 cat.includes('armchair') || cat.includes('chair') ||
+                 n.includes('sofa') || n.includes('settee');
+  if (!isSofa) return null;
+
+  // Seater count — check number first
+  if (/5[\s-]seater/.test(n)) return '5 Seater';
+  if (/4[\s-]seater/.test(n)) return '4 Seater';
+  if (/3[\s-]seater/.test(n)) return '3 Seater';
+  if (/2[\s-]seater/.test(n)) return '2 Seater';
+
+  // Configuration types
+  if (/corner/.test(n)) return 'Corner';
+  if (/chaise/.test(n)) return 'Chaise';
+  if (/sofa bed|sofabed/.test(n)) return 'Sofa Bed';
+  if (/modular/.test(n)) return 'Modular';
+  if (/snuggler/.test(n)) return 'Snuggler';
+  if (/loveseat|love seat/.test(n)) return 'Loveseat';
+  if (/recliner/.test(n)) return 'Recliner';
+  if (/armchair|arm chair/.test(n)) return 'Armchair';
+  if (/studio couch/.test(n)) return 'Studio Couch';
+
+  // Size-based fallback for sofas without seater count
+  if (/extra large|extra lrg|x[\s-]large|xlarge/.test(n)) return 'Extra Large';
+  if (/large/.test(n)) return 'Large';
+  if (/medium/.test(n)) return 'Medium';
+  if (/small/.test(n)) return 'Small';
+  if (/compact/.test(n)) return 'Compact';
+
+  // Fall back to seat_config from GA4 if set
+  if (sc && sc !== '(not set)' && sc !== '') return seatConfig;
+
+  return 'Other';
+}
+
 function parseRows(schema,rows) {
   if (!schema||!rows) return [];
   const fields = schema.fields.map(f=>f.name);
@@ -587,7 +808,10 @@ function parseRows(schema,rows) {
       else if (n==='quantity'||n==='sessions'||n==='users') v=parseInt(v)||0;
       else if (n==='matched_to_feed') v=v==='true'||v===true;
       o[n]=v;
-    }); return o;
+    });
+    // Derive sofa_config from product name
+    o.sofa_config = getSofaConfig(o.item_name, o.item_category, o.seat_config);
+    return o;
   });
 }
 
@@ -653,7 +877,7 @@ const v = id => document.getElementById(id).value;
 // ── Render all ────────────────────────────────────────────────────────────────
 function renderAll() {
   renderKPIs(); renderTrend(); renderColourChart(); renderCategoryChart();
-  renderMomentum(); renderColourTrend(); renderDemandTable(); renderProductTable();
+  renderAllTrends(); renderProductTable();
 }
 
 // ── KPIs ──────────────────────────────────────────────────────────────────────
@@ -718,18 +942,405 @@ function renderCategoryChart() {
 }
 
 // ── Momentum charts ───────────────────────────────────────────────────────────
-function renderMomentum() {
-  // Split data into early/recent halves by date
+// ── Sub tab navigation ────────────────────────────────────────────────────────
+function showSubTab(id) {
+  document.querySelectorAll('.sub-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sub-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sub-'+id).classList.add('active');
+  event.target.classList.add('active');
+  if(filteredData.length) renderAllTrends();
+}
+
+// ── Master trend renderer ─────────────────────────────────────────────────────
+function renderAllTrends() {
   const dates=[...new Set(filteredData.map(r=>r.date))].sort();
   const mid=dates[Math.floor(dates.length/2)];
   const early=filteredData.filter(r=>r.date<mid);
   const recent=filteredData.filter(r=>r.date>=mid);
+  const period=v('f-period');
 
-  renderMomentumChart('colour-momentum-chart', early, recent, 'colour', demandMetric);
-  renderMomentumChart('cat-momentum-chart', early, recent, 'top_category', demandMetric);
-  renderMomentumChart('collection-momentum-chart', early, recent, 'collection', 'revenue');
-  renderMomentumChart('seat-momentum-chart', early, recent, 'seat_config', 'revenue');
+  // Colours tab
+  renderMultiLineTrend('colour-trend-chart','colour',period,10);
+  renderMomentumChart('colour-momentum-chart',early,recent,'colour',demandMetric);
+  renderShareChart('colour-share-chart','colour');
+
+  // Materials tab
+  renderMultiLineTrend('material-trend-chart','material',period,8);
+  renderMomentumChart('material-momentum-chart',early,recent,'material',demandMetric);
+  renderShareChart('material-share-chart','material');
+
+  // Categories tab
+  renderMultiLineTrend('cat-trend-chart','top_category',period,8);
+  renderMomentumChart('cat-momentum-chart',early,recent,'top_category',demandMetric);
+  renderMomentumChart('subcat-momentum-chart',early,recent,'sub_category',demandMetric);
+  renderTopColourByField('colour-by-cat-chart','top_category');
+  renderTopColourByField('colour-by-subcat-chart','sub_category');
+
+  // Collections tab
+  renderMultiLineTrend('collection-trend-chart','collection',period,10);
+  renderMomentumChart('collection-momentum-chart',early,recent,'collection',demandMetric);
+  renderMultiLineTrend('seat-trend-chart','seat_config',period,8);
+
+  // Sofas tab
+  renderSofaTrends();
+
+  // Heatmap tab
+  renderHeatmap();
+  renderDemandTable();
 }
+
+// ── Multi-line trend chart ────────────────────────────────────────────────────
+function renderMultiLineTrend(canvasId, field, period, topN) {
+  // Get top N by total metric
+  const totals={};
+  filteredData.forEach(r=>{
+    const k=r[field]; if(!k||k==='Unknown'||k==='(not set)'||k==='N/A')return;
+    totals[k]=(totals[k]||0)+(demandMetric==='revenue'?r.item_revenue:r.quantity);
+  });
+  const topKeys=Object.entries(totals).sort((a,b)=>b[1]-a[1]).slice(0,topN).map(x=>x[0]);
+  if(!topKeys.length)return;
+
+  // Group by period
+  const byPeriod={};
+  filteredData.forEach(r=>{
+    const k=r[field]; if(!topKeys.includes(k))return;
+    const p=periodKey(r.date,period);
+    if(!byPeriod[p])byPeriod[p]={};
+    byPeriod[p][k]=(byPeriod[p][k]||0)+(demandMetric==='revenue'?r.item_revenue:r.quantity);
+  });
+  const periods=Object.keys(byPeriod).sort();
+
+  // Blue palette for non-colour fields, colour map for colours
+  const bluePalette=['#1d3c6e','#2a6099','#1a6b7c','#3a7abf','#15803d','#b8860b','#8b2252','#6b4c9a','#c2410c','#0f4c81'];
+  const isColour = field==='colour';
+
+  const datasets=topKeys.map((key,i)=>({
+    label:key,
+    data:periods.map(p=>(byPeriod[p]&&byPeriod[p][key])||0),
+    borderColor: isColour ? colFor(key) : bluePalette[i%bluePalette.length],
+    backgroundColor: isColour ? colFor(key)+'22' : bluePalette[i%bluePalette.length]+'22',
+    borderWidth:2, tension:0.3,
+    pointRadius:periods.length>24?0:2,
+    fill:false,
+  }));
+
+  if(charts[canvasId])charts[canvasId].destroy();
+  const ctx=document.getElementById(canvasId).getContext('2d');
+  charts[canvasId]=new Chart(ctx,{
+    type:'line',
+    data:{labels:periods,datasets},
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{position:'right',labels:{font:{size:10},boxWidth:10,padding:6,color:'var(--ink-2)'}}
+      },
+      scales:{
+        y:{beginAtZero:true,grid:{color:'#f0f2f8'},ticks:{color:'var(--ink-3)',font:{size:10},callback:n=>demandMetric==='revenue'?'£'+fmt(n):fmt(n)}},
+        x:{grid:{display:false},ticks:{color:'var(--ink-3)',font:{size:10},maxTicksLimit:14}}
+      }
+    }
+  });
+}
+
+// ── Share (doughnut) chart ────────────────────────────────────────────────────
+function renderShareChart(canvasId, field) {
+  const by={};
+  filteredData.forEach(r=>{
+    const k=r[field]; if(!k||k==='Unknown'||k==='(not set)'||k==='N/A')return;
+    by[k]=(by[k]||0)+(demandMetric==='revenue'?r.item_revenue:r.quantity);
+  });
+  const sorted=Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const isColour=field==='colour';
+  const bluePal=['#1d3c6e','#2a6099','#1a6b7c','#3a7abf','#15803d','#b8860b','#8b2252','#6b4c9a','#c2410c','#0f4c81'];
+  const colors=sorted.map((x,i)=>isColour?colFor(x[0]):bluePal[i%bluePal.length]);
+  const total=sorted.reduce((s,x)=>s+x[1],0);
+
+  if(charts[canvasId])charts[canvasId].destroy();
+  const ctx=document.getElementById(canvasId).getContext('2d');
+  charts[canvasId]=new Chart(ctx,{
+    type:'doughnut',
+    data:{labels:sorted.map(x=>x[0]),datasets:[{data:sorted.map(x=>Math.round(x[1])),backgroundColor:colors,borderWidth:2,borderColor:'#fff'}]},
+    options:{
+      responsive:true,maintainAspectRatio:true,
+      plugins:{
+        legend:{position:'right',labels:{font:{size:10},boxWidth:10,padding:5,color:'var(--ink-2)'}},
+        tooltip:{callbacks:{label:c=>` ${demandMetric==='revenue'?'£':''}${fmt(c.parsed)} (${Math.round(c.parsed/total*100)}%)`}}
+      }
+    }
+  });
+}
+
+// ── Top colour by field (bar chart with colour dots) ─────────────────────────
+function renderTopColourByField(canvasId, field) {
+  // For each unique field value, find the top colour by revenue
+  const byFieldColour={};
+  filteredData.forEach(r=>{
+    const fv=r[field]; const col=r.colour;
+    if(!fv||!col||col==='Unknown')return;
+    if(!byFieldColour[fv])byFieldColour[fv]={};
+    byFieldColour[fv][col]=(byFieldColour[fv][col]||0)+(demandMetric==='revenue'?r.item_revenue:r.quantity);
+  });
+
+  // Sort field values by total revenue
+  const fieldTotals={};
+  filteredData.forEach(r=>{if(r[field])fieldTotals[r[field]]=(fieldTotals[r[field]]||0)+r.item_revenue;});
+  const sortedFields=Object.entries(fieldTotals).sort((a,b)=>b[1]-a[1]).slice(0,12).map(x=>x[0]);
+
+  const labels=[], values=[], colors=[], topColours=[];
+  sortedFields.forEach(fv=>{
+    const colData=byFieldColour[fv]||{};
+    const top=Object.entries(colData).sort((a,b)=>b[1]-a[1])[0];
+    if(!top)return;
+    labels.push(fv);
+    values.push(Math.round(top[1]));
+    colors.push(colFor(top[0]));
+    topColours.push(top[0]);
+  });
+
+  if(charts[canvasId])charts[canvasId].destroy();
+  const ctx=document.getElementById(canvasId).getContext('2d');
+  charts[canvasId]=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[{data:values,backgroundColor:colors,borderRadius:3,borderWidth:0}]},
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:true,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{
+          title:c=>[c[0].label],
+          label:c=>`Top colour: ${topColours[c.dataIndex]} — ${demandMetric==='revenue'?'£':''}${fmt(c.parsed)}`
+        }}
+      },
+      scales:{
+        x:{beginAtZero:true,grid:{color:'#f0f2f8'},ticks:{color:'var(--ink-3)',font:{size:10},callback:n=>'£'+fmt(n)}},
+        y:{grid:{display:false},ticks:{color:'var(--ink-2)',font:{size:10}}}
+      }
+    }
+  });
+}
+
+// ── Sofa config trends ───────────────────────────────────────────────────────
+let sofaMetric = 'revenue';
+
+function setSofaMetric(m) {
+  sofaMetric = m;
+  ['revenue','units'].forEach(x=>{
+    const el=document.getElementById('sm-'+x);
+    if(el) el.classList.toggle('active', x===m);
+  });
+  if(filteredData.length) renderSofaTrends();
+}
+
+function renderSofaTrends() {
+  const period = v('f-period');
+  // Only sofa products
+  const sofaData = filteredData.filter(r => r.sofa_config && r.sofa_config !== null);
+  if (!sofaData.length) return;
+
+  const dates=[...new Set(sofaData.map(r=>r.date))].sort();
+  const mid=dates[Math.floor(dates.length/2)];
+  const early=sofaData.filter(r=>r.date<mid);
+  const recent=sofaData.filter(r=>r.date>=mid);
+
+  // Get top configs by total
+  const totals={};
+  sofaData.forEach(r=>{
+    totals[r.sofa_config]=(totals[r.sofa_config]||0)+(sofaMetric==='revenue'?r.item_revenue:r.quantity);
+  });
+  const topConfigs=Object.entries(totals).sort((a,b)=>b[1]-a[1]).slice(0,10).map(x=>x[0]);
+
+  // Colour palette — ordered to make 2/3/4 seater visually distinct
+  const configColours={
+    '2 Seater':'#1d3c6e',
+    '3 Seater':'#2a6099',
+    '4 Seater':'#1a6b7c',
+    '5 Seater':'#0f4c81',
+    'Corner':'#c2410c',
+    'Chaise':'#b8860b',
+    'Sofa Bed':'#6b4c9a',
+    'Modular':'#15803d',
+    'Snuggler':'#8b2252',
+    'Loveseat':'#d97706',
+    'Recliner':'#059669',
+    'Armchair':'#0891b2',
+    'Large':'#4a5568',
+    'Medium':'#718096',
+    'Small':'#a0aec0',
+    'Extra Large':'#2d3748',
+    'Other':'#cbd5e0',
+  };
+
+  // Multi-line trend
+  const byPeriod={};
+  sofaData.forEach(r=>{
+    if(!topConfigs.includes(r.sofa_config))return;
+    const p=periodKey(r.date,period);
+    if(!byPeriod[p])byPeriod[p]={};
+    byPeriod[p][r.sofa_config]=(byPeriod[p][r.sofa_config]||0)+(sofaMetric==='revenue'?r.item_revenue:r.quantity);
+  });
+  const periods=Object.keys(byPeriod).sort();
+
+  const datasets=topConfigs.map(cfg=>({
+    label:cfg,
+    data:periods.map(p=>(byPeriod[p]&&byPeriod[p][cfg])||0),
+    borderColor:configColours[cfg]||'#999',
+    backgroundColor:(configColours[cfg]||'#999')+'22',
+    borderWidth:2.5, tension:0.3,
+    pointRadius:periods.length>24?0:3,
+    fill:false,
+  }));
+
+  if(charts['sofa-trend-chart'])charts['sofa-trend-chart'].destroy();
+  const ctx=document.getElementById('sofa-trend-chart').getContext('2d');
+  charts['sofa-trend-chart']=new Chart(ctx,{
+    type:'line',
+    data:{labels:periods,datasets},
+    options:{
+      responsive:true,maintainAspectRatio:true,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12,padding:8,color:'var(--ink-2)'}}},
+      scales:{
+        y:{beginAtZero:true,grid:{color:'#f0f2f8'},ticks:{color:'var(--ink-3)',font:{size:10},callback:n=>sofaMetric==='revenue'?'£'+fmt(n):fmt(n)}},
+        x:{grid:{display:false},ticks:{color:'var(--ink-3)',font:{size:10},maxTicksLimit:14}}
+      }
+    }
+  });
+
+  // Momentum chart
+  const earlyMap={},recentMap={};
+  early.forEach(r=>{if(topConfigs.includes(r.sofa_config))earlyMap[r.sofa_config]=(earlyMap[r.sofa_config]||0)+(sofaMetric==='revenue'?r.item_revenue:r.quantity);});
+  recent.forEach(r=>{if(topConfigs.includes(r.sofa_config))recentMap[r.sofa_config]=(recentMap[r.sofa_config]||0)+(sofaMetric==='revenue'?r.item_revenue:r.quantity);});
+  const changes=topConfigs.map(k=>{
+    const ev=earlyMap[k]||0,rv=recentMap[k]||0;
+    const pct=ev>0?((rv-ev)/ev*100):rv>0?100:0;
+    return{k,pct,ev,rv};
+  }).sort((a,b)=>b.pct-a.pct);
+
+  if(charts['sofa-momentum-chart'])charts['sofa-momentum-chart'].destroy();
+  const ctx2=document.getElementById('sofa-momentum-chart').getContext('2d');
+  charts['sofa-momentum-chart']=new Chart(ctx2,{
+    type:'bar',
+    data:{
+      labels:changes.map(x=>x.k),
+      datasets:[{
+        data:changes.map(x=>Math.round(x.pct)),
+        backgroundColor:changes.map(x=>x.pct>=0?'rgba(26,122,74,0.75)':'rgba(184,50,50,0.75)'),
+        borderRadius:3
+      }]
+    },
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:true,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{
+        const item=changes[c.dataIndex];
+        return ` ${c.parsed>=0?'▲':'▼'} ${Math.abs(Math.round(c.parsed))}% | Early: ${sofaMetric==='revenue'?'£':''}${fmt(item.ev)} → Recent: ${sofaMetric==='revenue'?'£':''}${fmt(item.rv)}`;
+      }}}},
+      scales:{
+        x:{ticks:{callback:n=>(n>=0?'+':'')+n+'%',color:'var(--ink-3)',font:{size:10}},grid:{color:'#f0f2f8'}},
+        y:{grid:{display:false},ticks:{color:'var(--ink-2)',font:{size:11}}}
+      }
+    }
+  });
+
+  // Share doughnut
+  const sharePal=topConfigs.map(k=>configColours[k]||'#999');
+  if(charts['sofa-share-chart'])charts['sofa-share-chart'].destroy();
+  const ctx3=document.getElementById('sofa-share-chart').getContext('2d');
+  const shareVals=topConfigs.map(k=>Math.round(totals[k]||0));
+  const shareTotal=shareVals.reduce((a,b)=>a+b,0);
+  charts['sofa-share-chart']=new Chart(ctx3,{
+    type:'doughnut',
+    data:{labels:topConfigs,datasets:[{data:shareVals,backgroundColor:sharePal,borderWidth:2,borderColor:'#fff'}]},
+    options:{
+      responsive:true,maintainAspectRatio:true,
+      plugins:{
+        legend:{position:'right',labels:{font:{size:11},boxWidth:12,padding:6}},
+        tooltip:{callbacks:{label:c=>` ${sofaMetric==='revenue'?'£':''}${fmt(c.parsed)} (${Math.round(c.parsed/shareTotal*100)}%)`}}
+      }
+    }
+  });
+
+  // Top colour by sofa config
+  renderTopColourByFieldCustom('sofa-colour-chart', sofaData, 'sofa_config', sofaMetric);
+}
+
+function renderTopColourByFieldCustom(canvasId, data, field, metric) {
+  const byFieldColour={};
+  data.forEach(r=>{
+    const fv=r[field]; const col=r.colour;
+    if(!fv||!col||col==='Unknown')return;
+    if(!byFieldColour[fv])byFieldColour[fv]={};
+    byFieldColour[fv][col]=(byFieldColour[fv][col]||0)+(metric==='revenue'?r.item_revenue:r.quantity);
+  });
+  const fieldTotals={};
+  data.forEach(r=>{if(r[field])fieldTotals[r[field]]=(fieldTotals[r[field]]||0)+r.item_revenue;});
+  const sortedFields=Object.entries(fieldTotals).sort((a,b)=>b[1]-a[1]).slice(0,12).map(x=>x[0]);
+  const labels=[],values=[],colors=[],topColours=[];
+  sortedFields.forEach(fv=>{
+    const top=Object.entries(byFieldColour[fv]||{}).sort((a,b)=>b[1]-a[1])[0];
+    if(!top)return;
+    labels.push(fv); values.push(Math.round(top[1])); colors.push(colFor(top[0])); topColours.push(top[0]);
+  });
+  if(charts[canvasId])charts[canvasId].destroy();
+  const ctx=document.getElementById(canvasId).getContext('2d');
+  charts[canvasId]=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[{data:values,backgroundColor:colors,borderRadius:3,borderWidth:0}]},
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:true,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        label:c=>`Top colour: ${topColours[c.dataIndex]} — ${metric==='revenue'?'£':''}${fmt(c.parsed)}`
+      }}},
+      scales:{
+        x:{beginAtZero:true,grid:{color:'#f0f2f8'},ticks:{color:'var(--ink-3)',font:{size:10},callback:n=>'£'+fmt(n)}},
+        y:{grid:{display:false},ticks:{color:'var(--ink-2)',font:{size:11}}}
+      }
+    }
+  });
+}
+
+// ── Heatmap ───────────────────────────────────────────────────────────────────
+function renderHeatmap() {
+  const by={};
+  const colours=new Set(), cats=new Set();
+  filteredData.forEach(r=>{
+    const col=r.colour, cat=r.top_category;
+    if(!col||col==='Unknown'||!cat)return;
+    const k=`${col}||${cat}`;
+    by[k]=(by[k]||0)+(demandMetric==='revenue'?r.item_revenue:r.quantity);
+    colours.add(col); cats.add(cat);
+  });
+
+  // Get top colours and cats by total
+  const colTotals={}, catTotals={};
+  filteredData.forEach(r=>{
+    if(r.colour&&r.colour!=='Unknown')colTotals[r.colour]=(colTotals[r.colour]||0)+r.item_revenue;
+    if(r.top_category)catTotals[r.top_category]=(catTotals[r.top_category]||0)+r.item_revenue;
+  });
+  const topCols=Object.entries(colTotals).sort((a,b)=>b[1]-a[1]).slice(0,15).map(x=>x[0]);
+  const topCats=Object.entries(catTotals).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>x[0]);
+
+  const maxVal=Math.max(...topCols.flatMap(col=>topCats.map(cat=>by[`${col}||${cat}`]||0)));
+
+  const header='<tr><th>Colour</th>'+topCats.map(c=>`<th>${c}</th>`).join('')+'</tr>';
+  const rows=topCols.map(col=>{
+    const cells=topCats.map(cat=>{
+      const val=by[`${col}||${cat}`]||0;
+      const intensity=maxVal>0?val/maxVal:0;
+      const alpha=Math.round(intensity*200);
+      const bg=`rgba(29,60,110,${intensity.toFixed(2)})`;
+      const textColor=intensity>0.5?'#fff':'var(--ink-2)';
+      return `<td style="background:${bg};color:${textColor}">${val>0?(demandMetric==='revenue'?'£'+fmt(val):fmt(val)):''}</td>`;
+    }).join('');
+    const dot=`<span class="cdot" style="background:${colFor(col)}"></span>`;
+    return `<tr><td class="heatmap-row-label">${dot}${col}</td>${cells}</tr>`;
+  }).join('');
+
+  document.getElementById('heatmap-container').innerHTML=
+    `<table class="heatmap-table"><thead>${header}</thead><tbody>${rows}</tbody></table>`;
+}
+
+function renderMomentum() {}  // kept for compatibility
 
 function renderMomentumChart(canvasId, early, recent, field, metric) {
   const agg=(data)=>{
@@ -896,8 +1507,8 @@ function sortTable(col){if(sortCol===col)sortDir*=-1;else{sortCol=col;sortDir=-1
 
 // ── Metric toggles ────────────────────────────────────────────────────────────
 function setMetric(m){trendMetric=m;['revenue','sessions','units','transactions'].forEach(x=>document.getElementById('tb-'+x).classList.toggle('active',x===m));renderTrend();}
-function setDemandMetric(m){demandMetric=m;['revenue','units','sessions'].forEach(x=>document.getElementById('dm-'+x).classList.toggle('active',x===m));renderMomentum();}
-function setColourTrendMetric(m){colourTrendMetric=m;['revenue','units'].forEach(x=>document.getElementById('ct-'+x).classList.toggle('active',x===m));renderColourTrend();}
+function setDemandMetric(m){demandMetric=m;['revenue','units'].forEach(x=>{const el=document.getElementById('dm-'+x);if(el)el.classList.toggle('active',x===m);});if(filteredData.length)renderAllTrends();}
+function setColourTrendMetric(m){colourTrendMetric=m;['revenue','units'].forEach(x=>{const el=document.getElementById('ct-'+x);if(el)el.classList.toggle('active',x===m);});if(filteredData.length)renderAllTrends();}
 
 // ── Chart helper ──────────────────────────────────────────────────────────────
 function mkChart(id, type, labels, data, dsOpts, scaleOpts) {
