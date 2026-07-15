@@ -380,6 +380,7 @@
   <div class="filter-divider"></div>
   <button id="clear-filters-btn" onclick="clearFilters()">✕ Clear filters</button>
   <select class="fsel" id="f-period" onchange="applyFilters()">
+    <option value="daily">Daily</option>
     <option value="weekly">Weekly</option>
     <option value="monthly" selected>Monthly</option>
     <option value="quarterly">Quarterly</option>
@@ -752,6 +753,9 @@ async function loadData() {
     if (result.error) throw new Error(result.error.message);
     rawData = result.jobComplete ? parseRows(result.schema, result.rows||[]) : await pollJob(token, result.jobReference);
     setStatus('ok',`${rawData.length.toLocaleString()} rows loaded`);
+    if (rawData.length >= 100000) {
+      showError('Note: this date range hit the 100,000 row limit, so totals may be incomplete. Narrow the date range for exact figures.');
+    }
     populateFilters(); applyFilters();
   } catch(e) { setStatus('error','Query failed'); showError(`Error: ${e.message}`); }
   finally { document.getElementById('run-btn').disabled=false; document.getElementById('loading-overlay').classList.remove('show'); }
@@ -912,8 +916,9 @@ function renderKPIs() {
   set('k-revenue','£'+fmt(rev)); set('k-revenue-s',fmt(txns)+' orders');
   set('k-txns',fmt(txns)); set('k-txns-s',fmt(units)+' units');
   set('k-units',fmt(units)); set('k-units-s','£'+fmt(rev/Math.max(units,1))+' avg item value');
-  set('k-sessions',fmt(sessions)); set('k-sessions-s','From '+Object.keys(sessByDate).length+' days');
-  set('k-aov','£'+fmt(aov)); set('k-aov-s',fmt(sessions>0?txns/sessions*100:0)+'% conversion');
+  set('k-sessions',fmt(sessions)); set('k-sessions-s','Site-wide, '+Object.keys(sessByDate).length+' days');
+  const convPct = sessions>0 ? (txns/sessions*100) : 0;
+  set('k-aov','£'+fmt(aov)); set('k-aov-s',(convPct>0&&convPct<10?convPct.toFixed(2):Math.round(convPct))+'% site conversion');
 }
 
 // ── Trend chart ───────────────────────────────────────────────────────────────
@@ -979,7 +984,8 @@ function renderAllTrends() {
   const period=v('f-period');
 
   // Colours tab
-  renderMultiLineTrend('colour-trend-chart','colour',period,10);
+  renderMultiLineTrend('colour-trend-chart','colour',period,10,colourTrendMetric);
+  set('colour-trend-sub','Top 10 colours, '+period+' — '+(colourTrendMetric==='revenue'?'revenue':'units'));
   renderMomentumChart('colour-momentum-chart',early,recent,'colour',demandMetric);
   renderShareChart('colour-share-chart','colour');
 
@@ -1009,12 +1015,13 @@ function renderAllTrends() {
 }
 
 // ── Multi-line trend chart ────────────────────────────────────────────────────
-function renderMultiLineTrend(canvasId, field, period, topN) {
+function renderMultiLineTrend(canvasId, field, period, topN, metricOverride) {
+  const metric = metricOverride || demandMetric;
   // Get top N by total metric
   const totals={};
   filteredData.forEach(r=>{
     const k=r[field]; if(!k||k==='Unknown'||k==='(not set)'||k==='N/A')return;
-    totals[k]=(totals[k]||0)+(demandMetric==='revenue'?r.item_revenue:r.quantity);
+    totals[k]=(totals[k]||0)+(metric==='revenue'?r.item_revenue:r.quantity);
   });
   const topKeys=Object.entries(totals).sort((a,b)=>b[1]-a[1]).slice(0,topN).map(x=>x[0]);
   if(!topKeys.length)return;
@@ -1025,7 +1032,7 @@ function renderMultiLineTrend(canvasId, field, period, topN) {
     const k=r[field]; if(!topKeys.includes(k))return;
     const p=periodKey(r.date,period);
     if(!byPeriod[p])byPeriod[p]={};
-    byPeriod[p][k]=(byPeriod[p][k]||0)+(demandMetric==='revenue'?r.item_revenue:r.quantity);
+    byPeriod[p][k]=(byPeriod[p][k]||0)+(metric==='revenue'?r.item_revenue:r.quantity);
   });
   const periods=Object.keys(byPeriod).sort();
 
@@ -1055,7 +1062,7 @@ function renderMultiLineTrend(canvasId, field, period, topN) {
         legend:{position:'right',labels:{font:{size:10},boxWidth:10,padding:6,color:'var(--ink-2)'}}
       },
       scales:{
-        y:{beginAtZero:true,grid:{color:'#f0f2f8'},ticks:{color:'var(--ink-3)',font:{size:10},callback:n=>demandMetric==='revenue'?'£'+fmt(n):fmt(n)}},
+        y:{beginAtZero:true,grid:{color:'#f0f2f8'},ticks:{color:'var(--ink-3)',font:{size:10},callback:n=>metric==='revenue'?'£'+fmt(n):fmt(n)}},
         x:{grid:{display:false},ticks:{color:'var(--ink-3)',font:{size:10},maxTicksLimit:14}}
       }
     }
@@ -1373,11 +1380,12 @@ function renderMomentumChart(canvasId, early, recent, field, metric) {
   };
   const e=agg(early), r=agg(recent);
   const allKeys=[...new Set([...Object.keys(e),...Object.keys(r)])];
+  const minVal = metric==='revenue' ? 100 : 3; // filter tiny values (units need a much lower bar)
   const changes=allKeys.map(k=>{
     const ev=(e[k]||{})[metric]||0, rv=(r[k]||{})[metric]||0;
     const pct=ev>0?((rv-ev)/ev*100):rv>0?100:0;
     return {k,ev,rv,pct};
-  }).filter(x=>x.ev>100||x.rv>100) // filter tiny values
+  }).filter(x=>x.ev>minVal||x.rv>minVal)
     .sort((a,b)=>b.pct-a.pct).slice(0,12);
 
   const labels=changes.map(x=>x.k);
@@ -1394,39 +1402,6 @@ function renderMomentumChart(canvasId, early, recent, field, metric) {
       return ` ${c.parsed>=0?'▲':'▼'} ${Math.abs(Math.round(c.parsed))}% | Early: ${metric==='revenue'?'£':''}${fmt(item.ev)} → Recent: ${metric==='revenue'?'£':''}${fmt(item.rv)}`;
     }}}}
   });
-}
-
-// ── Colour trend over time ────────────────────────────────────────────────────
-function renderColourTrend() {
-  // Get top 8 colours by total revenue
-  const totals={};
-  filteredData.forEach(r=>{if(!r.colour||r.colour==='Unknown')return;totals[r.colour]=(totals[r.colour]||0)+r.item_revenue;});
-  const top8=Object.entries(totals).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>x[0]);
-
-  const period=v('f-period');
-  const byPeriod={};
-  filteredData.forEach(r=>{
-    if(!r.colour||r.colour==='Unknown'||!top8.includes(r.colour))return;
-    const k=periodKey(r.date,period);
-    if(!byPeriod[k])byPeriod[k]={};
-    byPeriod[k][r.colour]=(byPeriod[k][r.colour]||0)+(colourTrendMetric==='revenue'?r.item_revenue:r.quantity);
-  });
-
-  const periods=Object.keys(byPeriod).sort();
-  const datasets=top8.map(colour=>({
-    label:colour,
-    data:periods.map(p=>(byPeriod[p]&&byPeriod[p][colour])||0),
-    borderColor:colFor(colour),
-    backgroundColor:colFor(colour)+'33',
-    borderWidth:2,
-    tension:0.3,
-    pointRadius:periods.length>20?0:2,
-    fill:false,
-  }));
-
-  if(charts['colour-trend-chart'])charts['colour-trend-chart'].destroy();
-  const ctx=document.getElementById('colour-trend-chart').getContext('2d');
-  charts['colour-trend-chart']=new Chart(ctx,{type:'line',data:{labels:periods,datasets},options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:10,padding:6}}},scales:{y:{beginAtZero:true,grid:{color:'#f5f5f4'},ticks:{color:'#78716c',font:{size:11},callback:n=>colourTrendMetric==='revenue'?'£'+fmt(n):fmt(n)}},x:{grid:{display:false},ticks:{color:'#78716c',font:{size:11},maxTicksLimit:12}}}}});
 }
 
 // ── Demand table ──────────────────────────────────────────────────────────────
@@ -1561,6 +1536,7 @@ function setStatus(s,m){document.getElementById('status-dot').className=s==='loa
 function showError(m){const b=document.getElementById('error-banner');b.textContent=m;b.style.display='block';}
 function hideError(){document.getElementById('error-banner').style.display='none';}
 function periodKey(date,period){
+  if(period==='daily')return date;
   const d=new Date(date);
   if(period==='weekly'){const day=d.getDay()||7;const m=new Date(d);m.setDate(d.getDate()-day+1);return m.toISOString().slice(0,10);}
   if(period==='monthly')return date.slice(0,7);
@@ -1586,6 +1562,14 @@ function setQuickDate(preset) {
   const fmt = d => d.toISOString().slice(0,10);
   document.getElementById('date-from').value = fmt(from);
   document.getElementById('date-to').value = fmt(today);
+
+  // Auto-pick a sensible granularity for the range
+  const rangeDays = Math.round((today - from) / 86400000);
+  const periodSel = document.getElementById('f-period');
+  if (rangeDays <= 31) periodSel.value = 'daily';
+  else if (rangeDays <= 190) periodSel.value = 'weekly';
+  else periodSel.value = 'monthly';
+  if (filteredData.length) applyFilters();
 }
 
 // Set default — 1 year
@@ -1604,7 +1588,17 @@ setStatus('idle', 'Ready — click Run Query to sign in');
   if (el) el.addEventListener('change', () => {
     const f = document.getElementById('date-from').value;
     const t = document.getElementById('date-to').value;
-    if (f && t) document.getElementById('date-display').textContent = f + '  →  ' + t + '  (Custom)';
+    if (f && t) {
+      const dd = document.getElementById('date-display');
+      if (dd) dd.textContent = f + '  →  ' + t + '  (Custom)';
+      // Custom range: auto-pick granularity to match
+      const days = Math.round((new Date(t) - new Date(f)) / 86400000);
+      const ps = document.getElementById('f-period');
+      if (days <= 31) ps.value = 'daily';
+      else if (days <= 190) ps.value = 'weekly';
+      else ps.value = 'monthly';
+      document.querySelectorAll('.qd-btn').forEach(b => b.classList.remove('active'));
+    }
   });
 });
 </script>
