@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>B&S — Product Attribute Sales Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Inter:wght@300;400;500;600&display=swap');
 
@@ -335,7 +336,7 @@
   <div class="hd"></div>
   <h1>Product Attribute Sales Dashboard</h1>
   <div class="header-right">
-    <div id="status-pill"><div id="status-dot"></div><span id="status-text">Not connected</span></div>
+    <div id="status-pill"><div id="status-dot"></div><span id="status-text">Not signed in</span></div>
   </div>
 </header>
 
@@ -365,6 +366,7 @@
     </div>
     <button id="run-btn" onclick="loadData()">Run Query</button>
   </div>
+  <p class="disclaimer">First run will open a Google sign-in window — use your B&amp;S Google account.</p>
 </div>
 
 <div id="filters">
@@ -640,7 +642,7 @@
         <input type="text" id="table-search" placeholder="Search products..." oninput="renderProductTable()">
       </div>
       <div id="table-container">
-        <div class="empty"><div class="ei">📊</div><p>Connect BigQuery to load data</p></div>
+        <div class="empty"><div class="ei">📊</div><p>Sign in and run a query to load data</p></div>
       </div>
     </div>
   </div>
@@ -652,16 +654,12 @@ let rawData = [], filteredData = [];
 let trendMetric = 'revenue', demandMetric = 'revenue', colourTrendMetric = 'revenue';
 let sortCol = 'revenue', sortDir = -1;
 let charts = {};
-let accessToken = null, tokenExpiry = 0;
-const serviceAccountKey = {
-  "type": "service_account",
-  "project_id": "commanding-air-450109-p0",
-  "private_key_id": "f8a1b53898f585fd67e16185bbc20b01e83bed2e",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQDGd74OGiHMxwLA\nf1hzn+C2hDsr7wgQCzIsZZf3rOCZ5t0FWO9QnPqImtJbePcFvegl7YDNtdSAei8z\n3BMs2Bi0uvk5CVZo6fY9OErDsPDfhvyKncQAwUSs9XOYNUjJA3Ywujc2fpwugqMK\nVqCPay/dZhCUQ4xf129+KwTzNMD9oHp1fBxBPZ3hVCNuPlf9LYd0wPUw9PzFgtVz\nPFWkNZLnDxvZy3Y6Ae/7f3qHNbvjWgFbs47EM7p3R2G8R7UQ91YVoM2Zt4twa/iP\nzv7Mk2WMhAHiUtcqiHOZ2BkwIfCvjlRZvXvLjUV2hdbMTdHIe4flGOMjuoNVi4Zw\ndct7t5erAgMBAAECggEAGd0L5vGP2wxKNwTBZZv9oDteLK0DO3gCC1gX9D5SrKux\nvNsooLQ8T+YBKMt8QYLMiHjJcsVR0oZZtWPmGc91dMPy63RkjtqCbNrzn0nlMfP4\n4CWMH98P0IxSCpFTEWMCmXoC7PaV6te6YIQGe3on7C27Vl7xIaJFFMeNZxZGWia+\n+Sta9sl8N8aiUQsR4E7UIFQH9d9ER25uGpc3acO7p7oc5ignIVG6zrHeetTU/smT\nd6AlzW1l5L3ojlXJAJbxCDDxDpGvm38fOhgJKzqo6UWw2+MrNhEkQE2VpA0YrM8V\nD/HTSyEO3tdhZRWh6g78ta3zjokk+f0L2BsZKVpknQKBgQD9M/+V7V8XqhQGfEfn\nQwXxgqOw2SLJ5d1PEhhflEaUARl5ta+Q2guTLbDNAKM8Z9g8VrSQcf7uYfzfc++a\np2O+EW3wkSx/s5tZ+ye57Wbq4K8gIJkkhZ+ySt2/GoHNPJfATpC2HaMpRrx6cMCp\nf0hFBhAxEUbmHD733ow948XrpQKBgQDIqPbz8PgEiXIjZkDeyI0oSwt/i9XpPAmn\nnvQ2Dx6wI//WBPasdBg68xsQPeOR8YAsXd40APfsd36YovKkrM/PQYr/OCaf+PuF\nj2o3qPB+z03AXMjJhdwUykEb8U3OSx5y3Fe0OGrpdRDbz8con/r14Dpm2cNgdft+\nuUVfeo1VDwKBgQCsUA7HwVrNh/lI0Js+TuZkjTtIxvxd2gjaHr5njUjawETOB08L\njNgDuTxwxtZP7XvC1F7dTjbnk9e7WfLdlLzURJhE9wcJgPlgKwPGDEHV5kJH4udV\na3pao4h03V0ohuve+5iP12uKU5FA4iq7LtvH3XB3dAKD5wUTOmjGVZQD4QKBgQDH\nkFvDMwXHpVbR5BFiQH069J/j4xQE2cQUZB8nYJQ5xCPeG6Ok0fWDM2LYHWUmMdQy\ny8yBVfE8yX8rmOvPYVtwGhR+Tb8EXODx7TdLUgaVZ+FBDkZXPn0qZBirDKtAHy+S\nNpg3UeDqfJYetx+wxKMYREBxJ+SLG+vbFbHsCntjewKBgQC9oXQ5ytibH3BdnnHY\n0QAJRVU6JX/XHk5GpkKkGeSM2BwnJZ8WM++eoFA94Kz/ZbDbvTkxSEulbXZlUgo0\nXgBQs4sSxrk+mZmNN1R3RWofxNd1ivf+o4vJtLUCvGwxeSFRtmZT3JQ9Ox3n6fHH\nOeO6eeuC1X9WKC/H6lG5PSK1aQ==\n-----END PRIVATE KEY-----\n",
-  "client_email": "bs-dashboard@commanding-air-450109-p0.iam.gserviceaccount.com",
-  "client_id": "110491151952817913331",
-  "token_uri": "https://oauth2.googleapis.com/token"
-};
+let accessToken = null, tokenExpiry = 0, tokenClient = null;
+
+// OAuth — no service account key. Each user signs in with their own Google
+// account, which must have BigQuery read access to the project.
+const OAUTH_CLIENT_ID = '46227372300-rk63ag0caqgd7n12gjd0nt7f2qi7llqr.apps.googleusercontent.com';
+const OAUTH_SCOPE = 'https://www.googleapis.com/auth/bigquery.readonly';
 
 // ── Colour map ────────────────────────────────────────────────────────────────
 const CMAP = {
@@ -686,37 +684,58 @@ function showTab(id) {
   if (filteredData.length) renderAll();
 }
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
-// Key embedded — no upload needed
+// ── Auth (Google Identity Services — OAuth token flow) ────────────────────────
+function initTokenClient() {
+  if (tokenClient) return;
+  if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
+    throw new Error('Google Sign-In library not loaded yet — check your connection and try again');
+  }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: OAUTH_CLIENT_ID,
+    scope: OAUTH_SCOPE,
+    callback: () => {} // replaced per request in getToken()
+  });
+}
 
 async function getToken() {
   if (accessToken && Date.now() < tokenExpiry - 60000) return accessToken;
-  if (!serviceAccountKey) throw new Error('No service account key loaded');
-  const hdr = b64url(JSON.stringify({alg:'RS256',typ:'JWT'}));
-  const now = Math.floor(Date.now()/1000);
-  const clm = b64url(JSON.stringify({iss:serviceAccountKey.client_email,scope:'https://www.googleapis.com/auth/bigquery.readonly',aud:'https://oauth2.googleapis.com/token',exp:now+3600,iat:now}));
-  const unsigned = `${hdr}.${clm}`;
-  const pem = serviceAccountKey.private_key.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g,'');
-  const bin = Uint8Array.from(atob(pem),c=>c.charCodeAt(0));
-  const key = await crypto.subtle.importKey('pkcs8',bin.buffer,{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['sign']);
-  const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5',key,new TextEncoder().encode(unsigned));
-  const jwt = `${unsigned}.${b64url2(sig)}`;
-  const r = await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`});
-  const d = await r.json();
-  if (!d.access_token) throw new Error(d.error_description||'Auth failed');
-  accessToken = d.access_token; tokenExpiry = Date.now()+(d.expires_in*1000);
-  return accessToken;
+  initTokenClient();
+  return new Promise((resolve, reject) => {
+    tokenClient.callback = (resp) => {
+      if (resp.error) {
+        reject(new Error(resp.error_description || resp.error));
+        return;
+      }
+      accessToken = resp.access_token;
+      tokenExpiry = Date.now() + (resp.expires_in * 1000);
+      resolve(accessToken);
+    };
+    try {
+      // Empty prompt: silent refresh if already consented, popup otherwise
+      tokenClient.requestAccessToken({ prompt: '' });
+    } catch (err) {
+      reject(err);
+    }
+  });
 }
-const b64url = s => btoa(s).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
-const b64url2 = ab => btoa(String.fromCharCode(...new Uint8Array(ab))).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
 
 // ── Query ─────────────────────────────────────────────────────────────────────
 async function loadData() {
   const df = document.getElementById('date-from').value;
   const dt = document.getElementById('date-to').value;
-  setStatus('loading','Querying BigQuery...'); document.getElementById('run-btn').disabled=true; hideError(); document.getElementById('loading-overlay').classList.add('show');
+  setStatus('loading','Signing in...'); document.getElementById('run-btn').disabled=true; hideError();
+  let token;
   try {
-    const token = await getToken();
+    token = await getToken();
+  } catch(e) {
+    setStatus('error','Sign-in failed');
+    showError(`Sign-in error: ${e.message}. If a popup was blocked, allow popups for this site and try again.`);
+    document.getElementById('run-btn').disabled=false;
+    return;
+  }
+  setStatus('loading','Querying BigQuery...');
+  document.getElementById('loading-overlay').classList.add('show');
+  try {
     const query = `
       SELECT date, transaction_id, item_id, item_name, item_brand,
              colour, material, top_category, sub_category,
@@ -768,10 +787,10 @@ function getSofaConfig(name, category, seatConfig) {
   if (!isSofa) return null;
 
   // Seater count — check number first
-  if (/5[\s-]seater/.test(n)) return '5 Seater';
-  if (/4[\s-]seater/.test(n)) return '4 Seater';
-  if (/3[\s-]seater/.test(n)) return '3 Seater';
-  if (/2[\s-]seater/.test(n)) return '2 Seater';
+  if (/5[\s-]seater/.test(n)) return '5 Seater';
+  if (/4[\s-]seater/.test(n)) return '4 Seater';
+  if (/3[\s-]seater/.test(n)) return '3 Seater';
+  if (/2[\s-]seater/.test(n)) return '2 Seater';
 
   // Configuration types
   if (/corner/.test(n)) return 'Corner';
@@ -786,10 +805,10 @@ function getSofaConfig(name, category, seatConfig) {
 
   // Size-based fallback for sofas without seater count
   if (/extra large|extra lrg|x[\s-]large|xlarge/.test(n)) return 'Extra Large';
-  if (/large/.test(n)) return 'Large';
-  if (/medium/.test(n)) return 'Medium';
-  if (/small/.test(n)) return 'Small';
-  if (/compact/.test(n)) return 'Compact';
+  if (/large/.test(n)) return 'Large';
+  if (/medium/.test(n)) return 'Medium';
+  if (/small/.test(n)) return 'Small';
+  if (/compact/.test(n)) return 'Compact';
 
   // Fall back to seat_config from GA4 if set
   if (sc && sc !== '(not set)' && sc !== '') return seatConfig;
@@ -1578,7 +1597,7 @@ document.getElementById('date-from').value = _yearAgo.toISOString().slice(0,10);
 
 // Update display when custom dates are typed
 // Auto-connect status
-setStatus('idle', 'Ready — click Run Query');
+setStatus('idle', 'Ready — click Run Query to sign in');
 
 ['date-from','date-to'].forEach(id => {
   const el = document.getElementById(id);
